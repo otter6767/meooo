@@ -1,0 +1,50 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import requests
+import json
+
+# Загрузка/выгрузка истории
+def load_history():
+    try:
+        with open('history.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+def save_history(history):
+    with open('history.json', 'w') as f:
+        json.dump(history, f)
+
+# Конвертация валют
+def convert():
+    from_cur = from_currency.get()
+    to_cur = to_currency.get()
+    amount = amount_entry.get()
+    # Проверка ввода
+    if not amount.replace('.', '', 1).isdigit() or float(amount) <= 0:
+        messagebox.showerror("Ошибка", "Введите положительное число!")
+        return
+    # Запрос к API
+    response = requests.get(f"https://api.exchangerate-api.com/v4/latest/{from_cur}")
+    data = response.json()
+    rate = data['rates'][to_cur]
+    result = float(amount) * rate
+    # Обновление истории
+    history = load_history()
+    history.append({'from': from_cur, 'to': to_cur, 'amount': amount, 'result': result})
+    save_history(history)
+    # Обновление таблицы
+    update_history_table()
+    result_label.config(text=f"{amount} {from_cur} = {result} {to_cur}")
+
+# Обновление таблицы истории
+def update_history_table():
+    for i in history_table.get_children():
+        history_table.delete(i)
+    for entry in load_history():
+        history_table.insert('', 'end', values=(entry['from'], entry['to'], entry['amount'], entry['result']))
+
+# Создание окна и виджетов (упрощённо)
+root = tk.Tk()
+# ... создание выпадающих списков, поля ввода, кнопки, таблицы истории ...
+root.mainloop()
